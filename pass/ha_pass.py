@@ -1,6 +1,6 @@
 import gnupg
-from os import listdir
-from os.path import isfile, join
+from os import listdir, access, remove
+from os.path import isfile, join, dirname, realpath
 
 
 class HassPass:
@@ -17,7 +17,7 @@ class HassPass:
         self.homedir = home_dir
         self.gpg_encoding = gpg_encoding
         self.hasspass_dict = {}
-        self.save_file = save_file
+        self.save_file = join(dirname(realpath(__file__)), save_file)
 
         self._setup_gpg()
         self.make_yaml()
@@ -42,13 +42,25 @@ class HassPass:
                 data = self.gpg.decrypt_file(filename=f)
 
             self.hasspass_dict[current_file] = str(data).strip()
+
+    def _reset_yaml(self):
+        if not access(self.save_file, 0): # if true, file doesn't exist
+            with open(self.save_file, 'w') as f:
+                pass
+        else:
+            remove(self.save_file)
+            self._reset_yaml()
+
         
     def make_yaml(self):
         '''creates a yaml, unfinished'''
+        self._reset_yaml()
         self._form_pass_dict()
         alphabetical = sorted(self.hasspass_dict.keys())
         for component in alphabetical:
-            print(component + ": " + self.hasspass_dict[component])
+            with open(self.save_file, 'a') as f:
+                f.write(component + ": " + self.hasspass_dict[component] + '\n')
 
 if __name__ == '__main__':
     HassPass()
+    
